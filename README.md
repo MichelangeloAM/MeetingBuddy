@@ -4,50 +4,147 @@ Record, transcribe, and summarize meetings locally with AI.
 
 Meeting Buddy captures audio from your microphone or system audio, transcribes it using [Whisper](https://github.com/SYSTRAN/faster-whisper) (runs entirely on your machine), and generates structured meeting notes (summary, key points, action items, decisions, topics) using the [DeepSeek API](https://api.deepseek.com).
 
-## Features
+---
 
-- **Local transcription** — powered by faster-whisper (CPU/GPU) or mlx-whisper (Apple Silicon)
-- **AI summarization** — structured meeting notes via DeepSeek
-- **Web UI** — clean, responsive interface built with vanilla JS
-- **Desktop wrapper** — optional native window via pywebview (macOS/Windows)
-- **Export formats** — PDF, Markdown, plain text, and JSON
-- **Model management** — download, cache, and delete Whisper models from the Settings panel
-- **History** — browse and revisit past meeting outputs
-- **Real-time progress** — live transcription segments and summarization progress via SSE
+## Download & Install
 
-## Quick Start
+### macOS
+
+**[Download MeetingBuddy.dmg](https://github.com/MichelangeloAM/MeetingBuddy/releases/latest/download/MeetingGenerator.dmg)**
+
+1. Click the link above to download the DMG (or go to the [Releases page](https://github.com/MichelangeloAM/MeetingBuddy/releases)).
+2. Double-click `MeetingGenerator.dmg` to mount it.
+3. Drag `MeetingGenerator.app` into the `Applications` folder.
+4. The first time you open it, right-click (or Ctrl+click) the app and choose **Open** (macOS Gatekeeper may block it since it's not notarized).
+5. The app launches a native window. Follow the on-screen onboarding wizard.
+
+> [!NOTE]
+> The DMG is unsigned. On first launch macOS will show a warning — right-click the app in Finder and select **Open**, then click **Open** in the dialog. This only needs to be done once.
+
+### Windows
+
+> [!IMPORTANT]
+> Windows binaries are not yet published to GitHub Releases. Build from source for now:
+
+1. Install [Python 3.11+](https://www.python.org/downloads/) (check "Add Python to PATH" during installation).
+2. Install [NSIS](https://nsis.sourceforge.io/Download) (optional — for the installer; without it the build produces a portable `.zip`).
+3. Open PowerShell or Command Prompt in the project folder and run:
+   ```bat
+   build_windows.bat
+   ```
+4. Output is in `dist\`:
+   - **Installer:** `dist\MeetingGenerator-Setup.exe` (if NSIS is installed)
+   - **Portable:** `dist\MeetingGenerator-Portable.zip` (always produced as fallback)
+5. Run the installer or unzip the portable archive — the app launches a native window just like macOS.
+
+---
+
+## Using the App
+
+### 1. First-Time Setup (Onboarding)
+
+When you launch Meeting Buddy for the first time, a 3-step wizard will guide you:
+
+1. **API Key** — paste your [DeepSeek API key](https://platform.deepseek.com/api_keys). Without it, the AI summarization feature won't work. Click **Test Connection** to verify the key is valid.
+2. **Download Model** — choose a Whisper model for transcription:
+   - `tiny` (~75 MB) — fast, less accurate. Good for testing.
+   - `small` (~500 MB) — balanced speed/accuracy.
+   - `medium` (~1.5 GB) — good accuracy, moderate speed.
+   - `large-v3` (~3 GB) — best accuracy, slowest. Recommended for real meetings.
+3. **Permissions** — grant microphone access. On macOS you'll be redirected to System Settings > Privacy > Microphone.
+
+The wizard only appears once. You can change all settings later via the **Settings** panel in the sidebar.
+
+### 2. Recording a Meeting
+
+1. Click **Upload** in the sidebar.
+2. Click the large **Record** button (or drag & drop an existing audio file).
+   - **Record from Mic:** captures your microphone input.
+   - **Record System Audio:** captures computer audio (e.g. Zoom, Teams, Meet). On macOS this requires screen recording permission.
+3. Click **Stop** when the meeting ends.
+4. The app automatically starts transcribing, then sends the transcript to DeepSeek for summarization.
+5. A real-time progress panel shows:
+   - Transcription segments appearing live as they're recognized.
+   - Download/loading progress for the Whisper model.
+   - Summarization progress with elapsed time.
+
+### 3. Viewing Results
+
+Once processing completes, you'll see the **Results** view with several tabs:
+
+- **Summary** — a paragraph condensing the meeting content.
+- **Key Points** — bullet list of the most important discussion points.
+- **Action Items** — tasks and who they're assigned to.
+- **Decisions** — decisions made during the meeting.
+- **Topics** — topics that were covered.
+- **Transcript** — the full transcription with timestamps for each segment.
+
+### 4. Exporting
+
+Click the export buttons at the top of the Results view:
+
+| Format | File | Description |
+|--------|------|-------------|
+| **PDF** | `meeting_notes.pdf` | Formatted document with sections |
+| **Markdown** | `meeting_notes.md` | Plain markdown, ideal for wikis/notes apps |
+| **Text** | `meeting_notes.txt` | Simple plain text |
+
+### 5. History
+
+All past meetings are saved in the **History** panel in the sidebar. Each entry shows:
+- Original filename
+- Audio duration
+- Word count
+- Processing time
+- Model used
+- Status (done / error / cancelled)
+
+Click any history entry to view its full results again or re-export.
+
+### 6. Settings
+
+The **Settings** panel lets you manage:
+
+- **API Key** — add, change, or test your DeepSeek API key.
+- **Whisper Model** — download, switch, or delete models. Shows disk usage per model.
+- **Memory** — clear all history and caches.
+
+### 7. Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `R` | Start/stop recording (when the Upload view is active) |
+| `1`–`4` | Switch views: Upload, Result, History, Settings |
+| `Escape` | Close dialogs / cancel actions |
+
+---
+
+## Requirements (From Source)
+
+If you'd rather run from source instead of the pre-built app:
+
+- Python 3.11+
+- A [DeepSeek API key](https://platform.deepseek.com/api_keys)
+- Whisper model (downloaded automatically on first use; `tiny` is ~75 MB, `large-v3` is ~3 GB)
 
 ```bash
-# Clone and set up
 git clone https://github.com/MichelangeloAM/MeetingBuddy.git
 cd MeetingBuddy
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
-
-# Configure
 cp .env.example .env
 # Add your DEEPSEEK_API_KEY to .env
-
-# Run
 uvicorn app:app --host 127.0.0.1 --port 8765
 ```
 
-Then open http://127.0.0.1:8765.
+Then open http://127.0.0.1:8765 in your browser.
 
-### Desktop Window
-
+To launch in a desktop window instead:
 ```bash
 python launcher.py
 ```
-
-To force the default browser instead of a native window, set `MEETINGGEN_BROWSER=1`.
-
-## Requirements
-
-- Python 3.11+
-- DeepSeek API key (set in `.env` or via the Settings panel)
-- Whisper model (downloaded on first use or via Settings; `tiny` is ~75 MB, `large-v3` is ~3 GB)
+Set `MEETINGGEN_BROWSER=1` to force the default browser.
 
 ## Environment Variables
 
@@ -59,6 +156,7 @@ To force the default browser instead of a native window, set `MEETINGGEN_BROWSER
 | `COMPUTE_TYPE` | `auto` | Whisper compute type (`int8`, `float16`, `auto`) |
 | `WHISPER_BEAM_SIZE` | `1` | Beam search width (1 = fast, 5 = accurate) |
 | `WHISPER_VAD_FILTER` | `true` | Voice activity detection to skip silence |
+| `MEETINGGEN_BROWSER` | — | If set to `1`, launcher opens the browser instead of a native window |
 
 ## Project Structure
 
@@ -77,22 +175,35 @@ To force the default browser instead of a native window, set `MEETINGGEN_BROWSER
 └── tests/              # Smoke tests
 ```
 
-## Building (macOS)
+## Building from Source
+
+### macOS
 
 ```bash
-# Build the standalone .app
 source .venv/bin/activate
 pip install pyinstaller
 bash build_macos.sh
-
-# Create a .dmg
-bash create_dmg.sh
+# Output: dist/MeetingGenerator.app and dist/MeetingGenerator.dmg
 ```
+
+For a code-signed and notarized build, set these environment variables before running `build_macos.sh`:
+- `CODESIGN_IDENTITY` — your Apple Developer ID certificate name
+- `APPLE_ID`, `TEAM_ID`, `APP_PASSWORD` — for notarization
+- `NOTARIZE=1` — enable notarization
+
+### Windows
+
+```bat
+build_windows.bat
+:: Output: dist\MeetingGenerator-Setup.exe (with NSIS) or dist\MeetingGenerator-Portable.zip
+```
+
+To code-sign the output, set `SIGN_CERT` to the path of your `.pfx` certificate file before running the script.
 
 ## Testing
 
 ```bash
-python tests/smoke.py                # full end-to-end (needs 'tiny' cached)
+python tests/smoke.py                # full end-to-end (needs 'tiny' model cached)
 python tests/smoke.py --skip-e2e     # endpoint checks only, fast
 ```
 
