@@ -939,7 +939,7 @@ const App = {
         document.getElementById("live-feed").innerHTML = "";
         this._stopSummarizeElapsed();
         const cancelBtn = document.getElementById("job-cancel-btn");
-        if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.textContent = "Cancel"; }
+        if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.textContent = "Cancel"; cancelBtn.style.display = ""; }
         this._cancelling = false;
     },
 
@@ -1040,6 +1040,8 @@ const App = {
             let msg = "Transcription cancelled";
             try { const d = JSON.parse(e.data); if (d.message) msg = d.message; } catch (_) {}
             this._stopSummarizeElapsed();
+            const btn = document.getElementById("job-cancel-btn");
+            if (btn) btn.style.display = "none";
             window.UI.toast(msg, { variant: "warning" });
             this.reset();
         });
@@ -1332,17 +1334,35 @@ const App = {
         const id = this.currentJobId;
         if (!id) { window.UI.toast("No meeting loaded.", { variant: "warning" }); return; }
         const map = {
-            pdf: { path: "pdf", ext: "pdf", mime: "application/pdf", name: "meeting_notes.pdf" },
-            text: { path: "text", ext: "txt", mime: "text/plain", name: "meeting_notes.txt" },
-            markdown: { path: "markdown", ext: "md", mime: "text/markdown", name: "meeting_notes.md" },
-            json: { path: "", ext: "json", mime: "application/json", name: "meeting_notes.json" },
+            pdf: { path: "pdf", name: "meeting_notes.pdf" },
+            text: { path: "text", name: "meeting_notes.txt" },
+            markdown: { path: "markdown", name: "meeting_notes.md" },
+            json: { path: "", name: "meeting_notes.json" },
         };
         const target = map[kind];
         if (!target) return;
         const url = `/api/result/${id}${target.path ? "/" + target.path : ""}`;
         const btn = document.querySelector(`.export-card[onclick*="'${kind}'"]`);
         if (btn) btn.classList.add("is-loading");
+
         try {
+            // Preferred path: pywebview desktop bridge. Opens a native Save dialog
+            // via Python and writes the file — no window navigation, no blank window.
+            const api = window.pywebview && window.pywebview.api;
+            const bridgeFn = api ? (api.save_file || api.saveFile) : null;
+            if (bridgeFn) {
+                const result = await bridgeFn.call(api, url, target.name);
+                if (result && result.ok) {
+                    window.UI.toast(`Saved to ${result.path}`, { variant: "success", duration: 2000 });
+                } else if (result && result.cancelled) {
+                    // User cancelled the save dialog; no toast needed.
+                } else {
+                    window.UI.toast(`Export failed: ${(result && result.error) || "unknown"}`, { variant: "error" });
+                }
+                return;
+            }
+
+            // Browser-mode fallback: fetch + blob + programmatic download.
             const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const blob = await res.blob();
@@ -1353,7 +1373,6 @@ const App = {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            // Delay revocation so WKWebView finishes writing to Downloads.
             setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
             window.UI.toast(`${kind.toUpperCase()} exported`, { variant: "success", duration: 1600 });
         } catch (err) {

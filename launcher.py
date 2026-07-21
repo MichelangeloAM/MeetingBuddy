@@ -274,6 +274,50 @@ def _after_webview_ready(window, port: int, server: "_ServerThread") -> None:
         pass
 
 
+class _JsApi:
+    """Bridge exposed to JavaScript as `window.pywebview.api`.
+
+    The frontend uses `save_file(url_path, filename)` to save an export without
+    triggering a full-window navigation (which WKWebView does for `blob:` URLs
+    even with the `download` attribute).
+    """
+
+    def __init__(self) -> None:
+        self._port: int | None = None
+        self._window = None  # pywebview Window, set after create_window
+
+    def bind(self, port: int, window) -> None:
+        self._port = port
+        self._window = window
+
+    def save_file(self, url_path: str, filename: str) -> dict:
+        try:
+            import webview
+            if not self._port or not self._window:
+                return {"ok": False, "error": "bridge not ready"}
+            if not url_path.startswith("/"):
+                return {"ok": False, "error": "invalid path"}
+            # Fetch from the local uvicorn.
+            with urllib.request.urlopen(f"http://127.0.0.1:{self._port}{url_path}", timeout=30) as resp:
+                data = resp.read()
+            # Ask the user where to save.
+            safe_name = os.path.basename(filename) or "download"
+            result = self._window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=safe_name,
+            )
+            if not result:
+                return {"ok": False, "cancelled": True}
+            target = result if isinstance(result, str) else (result[0] if result else None)
+            if not target:
+                return {"ok": False, "cancelled": True}
+            with open(target, "wb") as f:
+                f.write(data)
+            return {"ok": True, "path": target}
+        except Exception as e:  # broad: report back to the SPA
+            return {"ok": False, "error": f"{type(e).__name__}: {e}"}
+
+
 def _run_browser_mode(port: int) -> None:
     webbrowser.open(f"http://127.0.0.1:{port}")
     sys.stdout.write(f"Meeting Generator running at http://127.0.0.1:{port}\n")
@@ -342,15 +386,22 @@ def main():
         return
 
     try:
+        try:
+            webview.settings["ALLOW_DOWNLOADS"] = True
+        except Exception:
+            pass
+        js_api = _JsApi()
         window = webview.create_window(
             title="Meeting Generator",
             html=SPLASH_HTML,
+            js_api=js_api,
             width=1100,
             height=760,
             min_size=(880, 560),
             resizable=True,
             easy_drag=False,
         )
+        js_api.bind(port, window)
         window.events.closed += lambda: server.request_stop()
         webview.start(func=_after_webview_ready, args=(window, port, server), debug=False, http_server=False)
     except Exception as e:

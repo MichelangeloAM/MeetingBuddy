@@ -223,32 +223,57 @@
 
         async _renderModel(stepEl, footer) {
             stepEl.appendChild(el("h3", { class: "wizard-step-title" }, ["Pick a transcription model"]));
-            stepEl.appendChild(el("p", { class: "wizard-step-desc" }, ["Whisper models run locally on your machine. Download once — cached forever. We recommend 'small' for most meetings."]));
+            stepEl.appendChild(el("p", { class: "wizard-step-desc" }, ["Whisper models run locally on your machine. Download once — cached forever. Click 'Use this model' on one to set it as your default."]));
 
             const grid = el("div", { class: "model-grid" });
             stepEl.appendChild(grid);
 
-            const nav = el("div", { style: { display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "6px" } });
-            if (this._index > 0) nav.appendChild(el("button", { class: "btn btn-ghost", type: "button", onclick: () => this._prev() }, ["Back"]));
+            footer.appendChild(el("button", { class: "btn btn-ghost", type: "button", onclick: () => this._prev() }, ["Back"]));
             const skip = el("button", { class: "btn btn-ghost", type: "button", onclick: () => this._next() }, ["Skip for now"]);
             const next = el("button", { class: "btn btn-primary", type: "button", disabled: "", onclick: () => this._next() }, ["Continue"]);
-
-            footer.appendChild(el("button", { class: "btn btn-ghost", type: "button", onclick: () => this._prev() }, ["Back"]));
             footer.appendChild(skip);
             footer.appendChild(next);
 
             const models = await fetch("/api/models").then((r) => r.json()).catch(() => []);
 
-            const anyReady = models.some((m) => m.downloaded);
-            if (anyReady) next.removeAttribute("disabled");
+            let currentSelection = null;
+            try { currentSelection = localStorage.getItem("mg.uploadModel") || null; } catch (_) {}
+
+            const cards = [];
+
+            const selectModel = (modelId) => {
+                currentSelection = modelId;
+                try {
+                    localStorage.setItem("mg.uploadModel", modelId);
+                    localStorage.setItem("mg.recordModel", modelId);
+                } catch (_) {}
+                this._state.selectedModel = modelId;
+                cards.forEach((entry) => entry.applySelected(entry.model.id === modelId));
+                next.removeAttribute("disabled");
+            };
 
             models.forEach((m) => {
-                const card = renderWizardModelCard(m, () => {
-                    // On download completion, unlock Continue
-                    next.removeAttribute("disabled");
+                const entry = renderWizardModelCard(m, {
+                    onDownloaded: () => {
+                        // After a download completes, auto-select if nothing is chosen yet.
+                        if (!currentSelection) selectModel(m.id);
+                        else next.removeAttribute("disabled");
+                    },
+                    onSelect: () => selectModel(m.id),
                 });
-                grid.appendChild(card);
+                cards.push(entry);
+                grid.appendChild(entry.node);
             });
+
+            // If the user had previously selected a model, honor it. Otherwise pre-select the recommended (small) if downloaded.
+            if (currentSelection && models.some((m) => m.id === currentSelection && m.downloaded)) {
+                selectModel(currentSelection);
+            } else {
+                const rec = models.find((m) => m.recommended_for === "Recommended" && m.downloaded);
+                const any = models.find((m) => m.downloaded);
+                if (rec) selectModel(rec.id);
+                else if (any) selectModel(any.id);
+            }
         },
 
         /* ---- Step 4: Permissions ---- */
@@ -321,7 +346,13 @@
         ul.appendChild(li);
     }
 
-    function renderWizardModelCard(m, onReady) {
+    function renderWizardModelCard(m, callbacks) {
+        callbacks = callbacks || {};
+        // Backwards-compat: if a plain function is passed, treat it as onDownloaded.
+        if (typeof callbacks === "function") callbacks = { onDownloaded: callbacks };
+        const onDownloaded = callbacks.onDownloaded;
+        const onSelect = callbacks.onSelect;
+
         const card = el("div", { class: "model-card-v2", "data-state": m.downloaded ? "ready" : "idle" });
         const header = el("div", { class: "model-card-header" });
         header.appendChild(el("span", { class: "model-card-name" }, [m.id]));
@@ -336,8 +367,17 @@
         const actions = el("div", { class: "model-card-actions" });
         card.appendChild(actions);
 
+        let selectBtn = null;
+
+        function makeSelectButton() {
+            const b = el("button", { class: "btn btn-outline btn-sm", type: "button" }, ["Use this model"]);
+            b.addEventListener("click", () => { if (onSelect) onSelect(); });
+            return b;
+        }
+
         if (m.downloaded) {
-            actions.appendChild(el("button", { class: "btn btn-outline btn-sm", type: "button", onclick: () => onReady && onReady() }, ["Use this model"]));
+            selectBtn = makeSelectButton();
+            actions.appendChild(selectBtn);
         } else {
             const btn = el("button", { class: "btn btn-primary btn-sm", type: "button" }, ["Download"]);
             actions.appendChild(btn);
@@ -353,10 +393,24 @@
                 const wrap = el("div", { class: "model-card-progress" }, [prog.node, meta2]);
                 card.appendChild(wrap);
 
+                const swapToSelectButton = () => {
+                    wrap.remove();
+                    const newActions = el("div", { class: "model-card-actions" });
+                    selectBtn = makeSelectButton();
+                    newActions.appendChild(selectBtn);
+                    card.appendChild(newActions);
+                    if (entry._selected) selectBtn.textContent = "✓ Selected";
+                };
+
                 try {
                     const res = await fetch(`/api/models/${m.id}/download`, { method: "POST" });
                     const data = await res.json();
-                    if (data.status === "already_downloaded") { card.setAttribute("data-state", "ready"); if (onReady) onReady(); return; }
+                    if (data.status === "already_downloaded") {
+                        card.setAttribute("data-state", "ready");
+                        swapToSelectButton();
+                        if (onDownloaded) onDownloaded();
+                        return;
+                    }
                     const es = new EventSource(`/api/models/${m.id}/download-progress`);
                     es.addEventListener("progress", (e) => {
                         const d = JSON.parse(e.data);
@@ -369,9 +423,8 @@
                         prog.set(100);
                         prog.complete();
                         card.setAttribute("data-state", "ready");
-                        speed.textContent = "";
-                        dl.textContent = "Downloaded ✓";
-                        if (onReady) onReady();
+                        swapToSelectButton();
+                        if (onDownloaded) onDownloaded();
                     });
                     es.addEventListener("cancelled", () => {
                         es.close();
@@ -393,7 +446,22 @@
             });
         }
 
-        return card;
+        const entry = {
+            node: card,
+            model: m,
+            _selected: false,
+            applySelected(isSelected) {
+                this._selected = isSelected;
+                card.classList.toggle("is-selected", isSelected);
+                if (selectBtn) {
+                    selectBtn.textContent = isSelected ? "✓ Selected" : "Use this model";
+                    selectBtn.classList.toggle("btn-primary", isSelected);
+                    selectBtn.classList.toggle("btn-outline", !isSelected);
+                }
+            },
+        };
+
+        return entry;
     }
 
     function fmtModelSize(mb) {

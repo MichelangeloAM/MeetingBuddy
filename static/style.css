@@ -1732,7 +1732,15 @@ html.modal-open { overflow: hidden; }
 .processing-actions {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     margin: -6px 0 12px 0;
+}
+
+.processing-actions .btn {
+    flex: 0 0 auto;
+    min-width: 110px;
+    justify-content: center;
+    white-space: nowrap;
 }
 
 .return-to-processing {
@@ -1788,5 +1796,10 @@ html.modal-open { overflow: hidden; }
 #job-cancel-btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.model-card-v2.is-selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-light);
 }
 
