@@ -107,7 +107,7 @@ def _stream_with_progress(
 ) -> str:
     expected = _estimate_expected_chars(transcript)
     stream = client.chat.completions.create(
-        model="deepseek-chat",
+        model="deepseek-v4-flash",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": USER_PROMPT_TEMPLATE.format(transcript=transcript)},
@@ -182,7 +182,7 @@ def generate_meeting_notes(
             thread.start()
         try:
             response = client.chat.completions.create(
-                model="deepseek-chat",
+                model="deepseek-v4-flash",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": USER_PROMPT_TEMPLATE.format(transcript=transcript)},
@@ -221,7 +221,7 @@ def test_connection(api_key: str | None = None) -> tuple[bool, str, float | None
         try:
             start = time.time()
             client.chat.completions.create(
-                model="deepseek-chat",
+                model="deepseek-v4-flash",
                 messages=[{"role": "user", "content": "ping"}],
                 max_tokens=1,
                 temperature=0,
