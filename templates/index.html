@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+            <div class="sidebar-brand">
+                <svg class="sidebar-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="sidebar-brand-text">Meeting<br>Generator</span>
+            </div>
+
+            <nav class="sidebar-nav" role="navigation" aria-label="Sections">
+                <button class="nav-item active" data-view="upload" aria-current="page" onclick="App.navigate('upload')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span>Upload</span>
+                </button>
+                <button class="nav-item" data-view="record" onclick="App.navigate('record')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <span>Record</span>
+                </button>
+                <button class="nav-item" data-view="history" onclick="App.navigate('history')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>History</span>
+                </button>
+                <button class="nav-item" data-view="settings" onclick="App.navigate('settings')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Settings</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="theme-toggle-sidebar" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">&#9788;</button>
+            </div>
+        </aside>
+
+        <main class="content" id="main-content">
+            <header class="topbar" id="topbar">
+                <h1 class="topbar-title" id="topbar-title">Upload</h1>
+            </header>
+
+            <div class="content-body" id="content-body">
+                <div id="view-upload" class="view active" aria-labelledby="topbar-title">
+                    <div id="upload-banner-slot"></div>
+                    <div class="options-bar">
+                        <label class="option-label" for="model-select">
+                            <span>Model</span>
+                            <select id="model-select" class="model-select"></select>
+                        </label>
+                    </div>
+                    <label id="drop-zone" class="card drop-zone" for="file-input" tabindex="0"
+                          aria-label="Upload audio file — click, press Enter, or drop a file here">
+                        <input type="file" id="file-input" accept="audio/*" class="sr-only">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p class="drop-text">Drag &amp; drop audio here</p>
+                        <p class="or">or</p>
+                        <span class="browse-btn">Browse files</span>
+                        <p class="formats">MP3, WAV, M4A, FLAC, OGG, WebM</p>
+                    </label>
+                </div>
+
+                <div id="view-record" class="view hidden" aria-labelledby="topbar-title">
+                    <div id="record-banner-slot"></div>
+                    <div id="record-mode-select" class="record-mode-select">
+                        <h3 class="record-section-title">Choose recording mode</h3>
+                        <div class="record-mode-cards">
+                            <button class="record-mode-card" data-mode="mic" onclick="App.selectRecordMode('mic')" aria-describedby="mode-mic-desc">
+                                <svg class="record-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                    <line x1="12" y1="19" x2="12" y2="23"/>
+                                    <line x1="8" y1="23" x2="16" y2="23"/>
+                                </svg>
+                                <span class="record-mode-name">In-Person Meeting</span>
+                                <span class="record-mode-desc" id="mode-mic-desc">Records audio from your computer's microphone. Place the laptop near the speakers in the room.</span>
+                            </button>
+                            <button class="record-mode-card" data-mode="system" id="rec-mode-system" onclick="App.selectRecordMode('system')" aria-describedby="mode-sys-desc">
+                                <svg class="record-mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
+                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                    <line x1="8" y1="21" x2="16" y2="21"/>
+                                    <line x1="12" y1="17" x2="12" y2="21"/>
+                                    <path d="M12 1a3 3 0 0 0-3 3v4a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" transform="translate(0,3) scale(0.6)"/>
+                                </svg>
+                                <span class="record-mode-name">Online Meeting</span>
+                                <span class="record-mode-desc" id="mode-sys-desc">Records system audio (Zoom, Meet, Teams) AND your microphone. Your voice is mixed in automatically.</span>
+                            </button>
+                        </div>
+                        <p id="rec-system-note" class="record-note hidden">System audio capture requires Chrome or Edge. If using Safari/Firefox, only microphone will be captured.</p>
+                    </div>
+
+                    <div id="record-ready" class="record-ready hidden">
+                        <div class="record-ready-bar">
+                            <span class="record-source-badge" id="rec-source-badge">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="badge-icon" aria-hidden="true" focusable="false"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+                                <span id="rec-source-label">Microphone</span>
+                            </span>
+                            <div class="options-bar" style="margin:0">
+                                <label class="option-label" for="model-select-record">
+                                    <span>Model</span>
+                                    <select id="model-select-record" class="model-select"></select>
+                                </label>
+                                <label class="option-label" for="lang-select-record">
+                                    <span>Language</span>
+                                    <select id="lang-select-record" class="model-select">
+                                        <option value="">Auto-detect</option>
+                                        <option value="en">English</option>
+                                        <option value="it">Italian</option>
+                                        <option value="es">Spanish</option>
+                                        <option value="fr">French</option>
+                                        <option value="de">German</option>
+                                        <option value="pt">Portuguese</option>
+                                        <option value="nl">Dutch</option>
+                                        <option value="ru">Russian</option>
+                                        <option value="zh">Chinese</option>
+                                        <option value="ja">Japanese</option>
+                                        <option value="ko">Korean</option>
+                                        <option value="ar">Arabic</option>
+                                        <option value="hi">Hindi</option>
+                                        <option value="tr">Turkish</option>
+                                        <option value="pl">Polish</option>
+                                        <option value="sv">Swedish</option>
+                                        <option value="no">Norwegian</option>
+                                        <option value="fi">Finnish</option>
+                                        <option value="da">Danish</option>
+                                        <option value="cs">Czech</option>
+                                        <option value="uk">Ukrainian</option>
+                                        <option value="ro">Romanian</option>
+                                        <option value="el">Greek</option>
+                                        <option value="hu">Hungarian</option>
+                                        <option value="he">Hebrew</option>
+                                        <option value="id">Indonesian</option>
+                                        <option value="th">Thai</option>
+                                        <option value="vi">Vietnamese</option>
+                                        <option value="ms">Malay</option>
+                                        <option value="ca">Catalan</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <button class="btn btn-ghost btn-sm" onclick="App.resetRecordingMode()">Change mode</button>
+                        </div>
+                        <button class="record-btn-big" onclick="App.startRecording()" aria-label="Start recording">
+                            <span class="record-btn-ring" aria-hidden="true"></span>
+                            <span class="record-btn-inner" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+                            </span>
+                        </button>
+                        <p class="record-ready-hint">Click the button to start recording</p>
+                        <p class="record-ready-hint" id="rec-system-instructions" style="display:none; max-width:420px; margin:0 auto; font-size:0.82rem; padding:10px 14px; background:var(--accent-light); border-radius:var(--radius-sm); color:var(--text-secondary);">
+                            You'll be asked for microphone access, then a screen picker will appear. Choose a tab or the entire screen and check <strong>"Share audio"</strong>. Only audio is captured — no video is saved.
+                        </p>
+                    </div>
+
+                    <div id="record-active" class="record-active hidden" aria-live="polite">
+                        <div class="record-active-bar">
+                            <span class="record-live-dot" aria-hidden="true"></span>
+                            <span class="record-timer" id="record-timer" aria-label="Recording duration">00:00</span>
+                            <span class="record-status-label">Recording</span>
+                            <span class="record-source-badge active" id="rec-active-badge">
+                                <span id="rec-active-label">Mic</span>
+                            </span>
+                        </div>
+                        <div class="vu-meter-wrap" aria-hidden="true">
+                            <div class="vu-meter-vert" id="vu-meter-vert">
+                                <div class="vu-fill" id="vu-fill"></div>
+                            </div>
+                        </div>
+                        <p class="vu-label" aria-hidden="true">microphone level</p>
+                        <div class="record-sources-list" id="rec-sources-list" aria-hidden="true">
+                            <span class="rec-src"><span class="rec-src-dot mic"></span> Microphone</span>
+                            <span class="rec-src hidden" id="rec-src-system"><span class="rec-src-dot sys"></span> System audio</span>
+                        </div>
+                        <button class="record-btn-stop-big" onclick="App.stopRecording()">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                            Stop Recording
+                        </button>
+                    </div>
+
+                    <div class="card record-done hidden" id="record-done">
+                        <div class="record-done-icon" aria-hidden="true">&#10003;</div>
+                        <div class="record-done-header">Recording complete</div>
+                        <div class="record-done-info">
+                            <span class="record-done-stat"><strong id="rec-duration">0s</strong></span>
+                            <span class="record-done-stat-dot" aria-hidden="true">&middot;</span>
+                            <span class="record-done-stat"><strong id="rec-size">0 KB</strong></span>
+                        </div>
+                        <div class="record-done-btns">
+                            <button class="btn btn-primary" onclick="App.processRecording()">Process Recording</button>
+                            <button class="btn btn-secondary" onclick="App.downloadRecording()">Download WAV</button>
+                            <button class="btn btn-ghost" onclick="App.resetRecordingMode()">Record again</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-history" class="view hidden" aria-labelledby="topbar-title">
+                    <div class="card">
+                        <div id="history-list-inline" class="history-list-inline" role="list"></div>
+                        <div id="history-empty" class="hidden"></div>
+                    </div>
+                </div>
+
+                <div id="view-settings" class="view hidden" aria-labelledby="topbar-title">
+                    <div class="card settings-card">
+                        <h3 class="settings-card-title">DeepSeek API Key</h3>
+                        <p class="settings-card-desc">Required for AI-powered meeting summaries. Get one at <a href="https://platform.deepseek.com" target="_blank" rel="noopener">platform.deepseek.com</a></p>
+                        <div class="apikey-row">
+                            <label class="sr-only" for="api-key-input">DeepSeek API key</label>
+                            <input type="password" id="api-key-input" placeholder="sk-...">
+                            <button id="api-key-toggle" class="btn btn-ghost btn-sm" onclick="App.toggleApiKeyVisibility()" aria-label="Show API key">Show</button>
+                        </div>
+                        <div class="apikey-actions">
+                            <button class="btn btn-primary btn-sm" onclick="App.saveApiKey()">Save API Key</button>
+                            <button class="btn btn-secondary btn-sm" onclick="App.testApiKey()" id="api-key-test-btn">Test connection</button>
+                        </div>
+                        <span id="apikey-status" class="settings-status" role="status" aria-live="polite"></span>
+                    </div>
+
+                    <div class="card settings-card">
+                        <h3 class="settings-card-title">Whisper Models</h3>
+                        <p class="settings-card-desc">Download a speech-to-text model. Models are cached after download — download once, use forever. Models are stored in your Hugging Face cache and survive app updates.</p>
+                        <p id="disk-space-note" class="disk-space-note"></p>
+                        <div id="model-list" class="model-grid"></div>
+                    </div>
+
+                    <div class="card settings-card">
+                        <h3 class="settings-card-title">Onboarding</h3>
+                        <p class="settings-card-desc">Re-run the first-run tour to reconfigure your API key, models, and permissions.</p>
+                        <button class="btn btn-secondary btn-sm" onclick="App.rerunOnboarding()">Re-run first-run tour</button>
+                    </div>
+                </div>
+
+                <div id="processing-view" class="view hidden" aria-labelledby="topbar-title">
+                    <div id="file-info" class="card file-info"></div>
+                    <div class="processing-actions">
+                        <button type="button" class="btn btn-outline btn-sm" id="job-cancel-btn" onclick="App.cancelJob()">Cancel</button>
+                    </div>
+                    <div class="phase-progress-grid">
+                        <div class="phase-progress-card hidden" id="phase-card-download" data-state="idle" aria-labelledby="phase-title-download">
+                            <div class="phase-progress-header">
+                                <span class="phase-progress-title" id="phase-title-download">Model Download</span>
+                                <span class="phase-progress-eta" id="phase-eta-download"></span>
+                                <span id="phase-check-download" class="phase-check hidden" aria-label="Complete">&#10003;</span>
+                            </div>
+                            <div class="pbar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Model download progress" id="phase-track-download">
+                                <div class="pbar-fill" id="phase-fill-download"></div>
+                            </div>
+                            <div class="phase-progress-status">
+                                <span class="phase-progress-msg" id="phase-msg-download">Waiting…</span>
+                                <span class="phase-progress-pct" id="phase-pct-download">0%</span>
+                            </div>
+                        </div>
+                        <div class="phase-progress-card" id="phase-card-transcribe" data-state="idle" aria-labelledby="phase-title-transcribe">
+                            <div class="phase-progress-header">
+                                <span class="phase-progress-title" id="phase-title-transcribe">Transcription</span>
+                                <span class="phase-progress-eta" id="phase-eta-transcribe"></span>
+                                <span id="phase-check-transcribe" class="phase-check hidden" aria-label="Complete">&#10003;</span>
+                            </div>
+                            <div class="pbar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Transcription progress" id="phase-track-transcribe">
+                                <div class="pbar-fill" id="phase-fill-transcribe"></div>
+                            </div>
+                            <div class="phase-progress-status">
+                                <span class="phase-progress-msg" id="phase-msg-transcribe">Waiting…</span>
+                                <span class="phase-progress-pct" id="phase-pct-transcribe">0%</span>
+                            </div>
+                        </div>
+                        <div class="phase-progress-card" id="phase-card-summarize" data-state="idle" aria-labelledby="phase-title-summarize">
+                            <div class="phase-progress-header">
+                                <span class="phase-progress-title" id="phase-title-summarize">Summarization</span>
+                                <span class="phase-progress-eta" id="phase-elapsed-summarize"></span>
+                                <span id="phase-check-summarize" class="phase-check hidden" aria-label="Complete">&#10003;</span>
+                            </div>
+                            <div class="pbar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Summarization progress" id="phase-track-summarize">
+                                <div class="pbar-fill" id="phase-fill-summarize"></div>
+                            </div>
+                            <div class="phase-progress-status">
+                                <span class="phase-progress-msg" id="phase-msg-summarize">Waiting for transcript…</span>
+                                <span class="phase-progress-pct" id="phase-pct-summarize">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card live-feed-card">
+                        <div class="live-feed-header">
+                            <span class="live-dot" aria-hidden="true"></span> Live transcript
+                            <span id="segment-count" class="segment-count"></span>
+                        </div>
+                        <div id="live-feed" class="live-feed" role="log" aria-live="polite" aria-atomic="false"></div>
+                    </div>
+                </div>
+
+                <div id="result-view" class="view hidden" aria-labelledby="topbar-title"></div>
+
+                <div id="error-view" class="view hidden" aria-labelledby="topbar-title">
+                    <div class="card error-card" role="alert">
+                        <p class="error-title">Something went wrong</p>
+                        <p id="error-msg" class="error-msg"></p>
+                        <button class="btn btn-primary" onclick="App.reset()">Try Again</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast-root" role="status" aria-live="polite"></div>
+    <div id="modal-root"></div>
+
+    <script src="/static/ui.js"></script>
+    <script src="/static/permissions.js"></script>
+    <script src="/static/recorder.js"></script>
+    <script src="/static/wizard.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

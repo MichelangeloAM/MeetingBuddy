@@ -1,0 +1,156 @@
+/* Design tokens — imported by style.css.
+   Add new tokens here; keep legacy variable names for backwards compatibility
+   with existing style.css selectors. */
+
+:root {
+    /* Base surfaces */
+    --bg: #f7f7f8;
+    --bg-card: #ffffff;
+    --bg-sidebar: #f2f2f4;
+    --bg-hover: #eeeef1;
+    --bg-input: #ffffff;
+    --surface-1: #ffffff;
+    --surface-2: #f7f7f8;
+    --surface-3: #efeff2;
+
+    /* Text */
+    --text: #111114;
+    --text-secondary: #52525b;
+    --text-muted: #8a8a94;
+
+    /* Borders */
+    --border: #e5e5ea;
+    --border-light: #f0f0f3;
+    --border-strong: #d4d4d8;
+
+    /* Accent (indigo-violet) */
+    --accent: #6366f1;
+    --accent-hover: #4f46e5;
+    --accent-light: #eef2ff;
+    --accent-bg: #e0e7ff;
+    --accent-contrast: #ffffff;
+
+    /* Semantic */
+    --danger: #dc2626;
+    --danger-hover: #b91c1c;
+    --danger-light: #fef2f2;
+    --success: #16a34a;
+    --success-hover: #15803d;
+    --success-light: #f0fdf4;
+    --warning: #d97706;
+    --warning-light: #fffbeb;
+    --info: #0ea5e9;
+    --info-light: #f0f9ff;
+
+    /* Typography scale (rem for accessibility zoom) */
+    --fs-xs: 0.75rem;    /* 12px */
+    --fs-sm: 0.8125rem;  /* 13px */
+    --fs-md: 0.875rem;   /* 14px */
+    --fs-lg: 1rem;       /* 16px */
+    --fs-xl: 1.25rem;    /* 20px */
+    --fs-2xl: 1.5rem;    /* 24px */
+    --fs-3xl: 2rem;      /* 32px */
+    --lh-tight: 1.25;
+    --lh-normal: 1.5;
+    --lh-relaxed: 1.65;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+
+    /* Spacing */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --sp-6: 32px;
+    --sp-7: 48px;
+
+    /* Radii */
+    --radius: 14px;
+    --radius-lg: 20px;
+    --radius-sm: 10px;
+    --radius-xs: 6px;
+    --radius-pill: 9999px;
+
+    /* Elevation */
+    --elev-0: none;
+    --elev-1: 0 1px 2px rgba(15, 15, 20, 0.04);
+    --elev-2: 0 1px 3px rgba(15, 15, 20, 0.06), 0 1px 2px rgba(15, 15, 20, 0.04);
+    --elev-3: 0 8px 24px rgba(15, 15, 20, 0.10), 0 2px 6px rgba(15, 15, 20, 0.05);
+
+    /* Legacy shadow aliases (retained so existing selectors keep working) */
+    --shadow-sm: var(--elev-1);
+    --shadow: var(--elev-2);
+    --shadow-md: var(--elev-3);
+
+    /* Focus */
+    --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+    --focus-ring-color: var(--accent);
+
+    /* Motion */
+    --motion-fast: 120ms;
+    --motion-normal: 180ms;
+    --motion-slow: 260ms;
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+    /* Layout */
+    --sidebar-width: 220px;
+    --topbar-height: 56px;
+
+    /* Z-index */
+    --z-modal: 1000;
+    --z-toast: 1100;
+    --z-tooltip: 1200;
+}
+
+html.dark {
+    --bg: #0b0b0f;
+    --bg-card: #17171c;
+    --bg-sidebar: #0f0f14;
+    --bg-hover: #1f1f26;
+    --bg-input: #17171c;
+    --surface-1: #17171c;
+    --surface-2: #0f0f14;
+    --surface-3: #24242c;
+
+    --text: #f2f2f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+
+    --border: #2a2a33;
+    --border-light: #1f1f26;
+    --border-strong: #3a3a44;
+
+    --accent: #818cf8;
+    --accent-hover: #a5b4fc;
+    --accent-light: #1e1b4b;
+    --accent-bg: #312e81;
+    --accent-contrast: #0b0b0f;
+
+    --danger: #f87171;
+    --danger-hover: #ef4444;
+    --danger-light: #3b1111;
+    --success: #4ade80;
+    --success-hover: #22c55e;
+    --success-light: #052e1c;
+    --warning: #fbbf24;
+    --warning-light: #3b2f00;
+    --info: #38bdf8;
+    --info-light: #0c2a3f;
+
+    --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --elev-2: 0 2px 6px rgba(0, 0, 0, 0.5);
+    --elev-3: 0 12px 30px rgba(0, 0, 0, 0.6), 0 4px 10px rgba(0, 0, 0, 0.4);
+    --shadow-sm: var(--elev-1);
+    --shadow: var(--elev-2);
+    --shadow-md: var(--elev-3);
+
+    --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+/* Respect user preference when localStorage hasn't been set yet. */
+@media (prefers-color-scheme: dark) {
+    html:not(.light):not(.dark) {
+        color-scheme: dark;
+    }
+}

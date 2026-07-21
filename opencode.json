@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["AGENTS.md"],
+  "default_agent": "meeting",
+  "agent": {
+    "review": {
+      "description": "Reviews Python code for correctness, style, and security (no committed secrets, proper error handling). Trigger on /review or when code needs review.",
+      "mode": "subagent",
+      "permission": {
+        "edit": "deny",
+        "bash": "ask"
+      }
+    }
+  }
+}

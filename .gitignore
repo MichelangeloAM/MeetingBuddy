@@ -1,0 +1,13 @@
+.env
+models/
+outputs/
+__pycache__/
+*.pyc
+.venv/
+.venv_win/
+build/
+!build/signing/
+dist/
+runtime_port
+.writetest
+.DS_Store
