@@ -23,9 +23,9 @@ Go to the [Releases page](https://github.com/MichelangeloAM/MeetingBuddy/release
 
 ### Windows
 
-1. Download `MeetingGenerator-Setup.exe` from the latest release.
-2. Run the installer — it installs per-user into `%LOCALAPPDATA%`, no admin rights needed.
-3. Launch **Meeting Generator** from the Start Menu or desktop shortcut.
+1. Download `MeetingGenerator-Portable.zip` from the latest release.
+2. Extract the ZIP anywhere (e.g. `Desktop` or `%LOCALAPPDATA%`).
+3. Double-click `MeetingGenerator.exe` to launch.
 4. Follow the onboarding wizard.
 
 ---
