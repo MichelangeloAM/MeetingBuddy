@@ -8,34 +8,25 @@ Meeting Buddy captures audio from your microphone or system audio, transcribes i
 
 ## Download & Install
 
+Go to the [Releases page](https://github.com/MichelangeloAM/MeetingBuddy/releases) and pick your platform.
+
 ### macOS
 
-**[Download MeetingBuddy.dmg](https://github.com/MichelangeloAM/MeetingBuddy/releases/latest/download/MeetingGenerator.dmg)**
-
-1. Click the link above to download the DMG (or go to the [Releases page](https://github.com/MichelangeloAM/MeetingBuddy/releases)).
-2. Double-click `MeetingGenerator.dmg` to mount it.
+1. Download `MeetingGenerator.dmg` from the latest release.
+2. Double-click the DMG to mount it.
 3. Drag `MeetingGenerator.app` into the `Applications` folder.
-4. The first time you open it, right-click (or Ctrl+click) the app and choose **Open** (macOS Gatekeeper may block it since it's not notarized).
-5. The app launches a native window. Follow the on-screen onboarding wizard.
+4. The first time you open it, right-click (or Ctrl+click) the app and choose **Open** (macOS Gatekeeper blocks unsigned apps — this one-time override bypasses it).
+5. The app launches a native window. Follow the onboarding wizard.
 
 > [!NOTE]
-> The DMG is unsigned. On first launch macOS will show a warning — right-click the app in Finder and select **Open**, then click **Open** in the dialog. This only needs to be done once.
+> The DMG is unsigned. On first launch macOS will show a warning — open Finder, right-click the app, select **Open**, then click **Open** in the dialog.
 
 ### Windows
 
-> [!IMPORTANT]
-> Windows binaries are not yet published to GitHub Releases. Build from source for now:
-
-1. Install [Python 3.11+](https://www.python.org/downloads/) (check "Add Python to PATH" during installation).
-2. Install [NSIS](https://nsis.sourceforge.io/Download) (optional — for the installer; without it the build produces a portable `.zip`).
-3. Open PowerShell or Command Prompt in the project folder and run:
-   ```bat
-   build_windows.bat
-   ```
-4. Output is in `dist\`:
-   - **Installer:** `dist\MeetingGenerator-Setup.exe` (if NSIS is installed)
-   - **Portable:** `dist\MeetingGenerator-Portable.zip` (always produced as fallback)
-5. Run the installer or unzip the portable archive — the app launches a native window just like macOS.
+1. Download `MeetingGenerator-Setup.exe` from the latest release.
+2. Run the installer — it installs per-user into `%LOCALAPPDATA%`, no admin rights needed.
+3. Launch **Meeting Generator** from the Start Menu or desktop shortcut.
+4. Follow the onboarding wizard.
 
 ---
 

@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build app bundle
+        env:
+          APP_VERSION: ${{ github.ref_name }}
+        run: |
+          pyinstaller --clean --noconfirm app_macos.spec
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          mkdir -p dist/dmg_temp
+          cp -R dist/MeetingGenerator.app dist/dmg_temp/
+          ln -s /Applications dist/dmg_temp/Applications
+          create-dmg \
+            --volname "Meeting Generator" \
+            --window-pos 200 120 \
+            --window-size 540 340 \
+            --icon-size 96 \
+            --icon "MeetingGenerator.app" 140 150 \
+            --app-drop-link 400 150 \
+            --eula LICENSE.txt \
+            "dist/MeetingGenerator.dmg" \
+            "dist/dmg_temp/"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/MeetingGenerator.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements-windows.txt pyinstaller
+
+      - name: Build app
+        env:
+          APP_VERSION: ${{ github.ref_name }}
+        run: |
+          pyinstaller --clean --noconfirm app.spec
+
+      - name: Create NSIS installer
+        run: |
+          & "C:\Program Files (x86)\NSIS\makensis.exe" installer_windows.nsi
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/MeetingGenerator-Setup.exe
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*'
+          merge-multiple: true
+          path: dist/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/MeetingGenerator.dmg
+            dist/MeetingGenerator-Setup.exe
+          generate_release_notes: true
