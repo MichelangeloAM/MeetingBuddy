@@ -69,15 +69,35 @@ jobs:
         run: |
           pyinstaller --clean --noconfirm app.spec
 
-      - name: Create NSIS installer
+      - name: Find NSIS
+        id: nsis
+        shell: bash
         run: |
-          & "C:\Program Files (x86)\NSIS\makensis.exe" installer_windows.nsi
+          NSIS_PATH=$(find "C:/Program Files" "C:/Program Files (x86)" -name makensis.exe 2>/dev/null | head -1 || echo "")
+          if command -v makensis &>/dev/null; then
+            echo "path=makensis" >> "$GITHUB_OUTPUT"
+          elif [ -n "$NSIS_PATH" ]; then
+            echo "path=$NSIS_PATH" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create NSIS installer
+        if: steps.nsis.outputs.path != ''
+        run: |
+          & ${{ steps.nsis.outputs.path }} installer_windows.nsi
+
+      - name: Zip portable (fallback)
+        if: steps.nsis.outputs.path == ''
+        run: Compress-Archive -Path "dist\MeetingGenerator\*" -DestinationPath "dist\MeetingGenerator-Portable.zip" -Force
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: dist/MeetingGenerator-Setup.exe
+          path: |
+            dist/MeetingGenerator-Setup.exe
+            dist/MeetingGenerator-Portable.zip
 
   release:
     needs: [build-macos, build-windows]
@@ -93,6 +113,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            dist/MeetingGenerator.dmg
-            dist/MeetingGenerator-Setup.exe
+            dist/*.dmg
+            dist/*.exe
+            dist/*.zip
           generate_release_notes: true
