@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import threading
 import time
 
@@ -48,11 +49,28 @@ _download_progress: dict[str, dict] = {}
 _cancel_events: dict[str, threading.Event] = {}
 
 
+def _use_mlx(model_size: str) -> bool:
+    """Whether this model is (or would be) served by the MLX backend.
+
+    Quantized models only exist as MLX repos. For standard sizes, the cache
+    check/download must target whatever repo the active backend will actually
+    load at transcribe time — otherwise we cache-check/download the faster-whisper
+    repo while MLX silently pulls its own mlx-community repo on first use.
+    """
+    if model_size in ("large-v3-q4", "large-v3-q8"):
+        return True
+    from transcriber import _get_backend
+    return _get_backend() == "mlx"
+
+
 def _get_repo_id(model_size: str) -> str:
     if model_size == "large-v3-q4":
         return "mlx-community/whisper-large-v3-turbo-4bit"
     if model_size == "large-v3-q8":
         return "mlx-community/whisper-large-v3-turbo-8bit"
+    if _use_mlx(model_size):
+        from transcriber import MLXWhisperTranscriber
+        return MLXWhisperTranscriber._MODEL_MAP.get(model_size, f"mlx-community/whisper-{model_size}-mlx")
     return f"Systran/faster-whisper-{model_size}"
 
 
@@ -167,33 +185,24 @@ class DownloadCancelled(Exception):
 
 
 def download_model_sync(model_size: str) -> None:
-    from faster_whisper.utils import download_model
+    if model_size in ("large-v3-q4", "large-v3-q8") and sys.platform != "darwin":
+        raise RuntimeError(f"{model_size} is only available on macOS with MLX backend.")
 
-    if model_size in ("large-v3-q4", "large-v3-q8"):
-        import sys
-        if sys.platform != "darwin":
-            raise RuntimeError(f"{model_size} is only available on macOS with MLX backend.")
+    use_mlx = _use_mlx(model_size)
+    if use_mlx:
         try:
-            import mlx_whisper
-            repo_id = f"mlx-community/whisper-large-v3-turbo-{model_size.split('-')[-1]}bit"
-            mlx_whisper.download_model(repo_id)
+            from huggingface_hub import snapshot_download
         except ImportError:
-            raise RuntimeError("mlx-whisper not installed. Quantized models require Apple Silicon.")
-        final_mb = _get_cache_size_mb(model_size)
-        _download_progress[model_size] = {
-            "progress": 100,
-            "message": f"Model {model_size} ready ({final_mb:.0f} MB on disk)",
-            "downloaded_mb": final_mb,
-            "total_mb": MODEL_INFO.get(model_size, {}).get("size_mb", 0),
-            "speed_kbps": 0,
-            "eta_sec": 0,
-            "cancelled": False,
-        }
-        settings = load_settings()
-        downloaded = set(settings.get("downloaded_models", []))
-        downloaded.add(model_size)
-        set_setting("downloaded_models", sorted(downloaded))
-        return
+            raise RuntimeError("huggingface_hub not installed. Required to download MLX models.")
+        repo_id = _get_repo_id(model_size)
+
+        def _download():
+            snapshot_download(repo_id=repo_id)
+    else:
+        from faster_whisper.utils import download_model
+
+        def _download():
+            download_model(model_size)
 
     cancel_ev = threading.Event()
     _cancel_events[model_size] = cancel_ev
@@ -248,7 +257,7 @@ def download_model_sync(model_size: str) -> None:
 
     cancelled = False
     try:
-        download_model(model_size)
+        _download()
     finally:
         stop_event.set()
         monitor_thread.join(timeout=5)

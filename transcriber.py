@@ -152,7 +152,7 @@ class FasterWhisperTranscriber:
 
         transcribe_kwargs = dict(
             beam_size=self.beam_size,
-            word_timestamps=True,
+            word_timestamps=False,
             condition_on_previous_text=False,
             vad_filter=self.vad_filter,
             vad_parameters=dict(
@@ -298,7 +298,7 @@ class MLXWhisperTranscriber:
             result = mlx_whisper.transcribe(
                 processed_path,
                 path_or_hf_repo=self.hf_repo,
-                word_timestamps=True,
+                word_timestamps=False,
                 language=(language or None),
             )
         finally:
@@ -379,16 +379,15 @@ def get_transcriber(
 ) -> FasterWhisperTranscriber | MLXWhisperTranscriber:
     ms = model_size or os.getenv("WHISPER_MODEL", "large-v3")
     backend = _get_backend()
-    key = f"{backend}_{ms}"
-
-    if key in _transcriber_cache:
-        return _transcriber_cache[key]
 
     if backend == "mlx":
         vf = vad_filter if vad_filter is not None else os.getenv("WHISPER_VAD_FILTER", "true").lower() == "true"
         vt = vad_threshold if vad_threshold is not None else float(os.getenv("WHISPER_VAD_THRESHOLD", "0.5"))
         vms = vad_min_silence_ms if vad_min_silence_ms is not None else int(os.getenv("WHISPER_VAD_MIN_SILENCE_MS", "500"))
         vsp = vad_speech_pad_ms if vad_speech_pad_ms is not None else int(os.getenv("WHISPER_VAD_SPEECH_PAD_MS", "400"))
+        key = f"{backend}_{ms}_{vf}_{vt}_{vms}_{vsp}"
+        if key in _transcriber_cache:
+            return _transcriber_cache[key]
         _transcriber_cache[key] = MLXWhisperTranscriber(
             model_size=ms,
             vad_filter=vf,
@@ -405,6 +404,9 @@ def get_transcriber(
         vt = vad_threshold if vad_threshold is not None else float(os.getenv("WHISPER_VAD_THRESHOLD", "0.5"))
         vms = vad_min_silence_ms if vad_min_silence_ms is not None else int(os.getenv("WHISPER_VAD_MIN_SILENCE_MS", "500"))
         vsp = vad_speech_pad_ms if vad_speech_pad_ms is not None else int(os.getenv("WHISPER_VAD_SPEECH_PAD_MS", "400"))
+        key = f"{backend}_{ms}_{ct}_{bs}_{vf}_{batch}_{cu}_{vt}_{vms}_{vsp}"
+        if key in _transcriber_cache:
+            return _transcriber_cache[key]
         _transcriber_cache[key] = FasterWhisperTranscriber(
             model_size=ms,
             compute_type=ct,
