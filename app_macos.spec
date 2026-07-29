@@ -7,7 +7,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 _entry = Path("launcher.py").resolve()
 _root = _entry.parent
 
-APP_VERSION = os.environ.get("APP_VERSION", "0.3.0")
+APP_VERSION = os.environ.get("APP_VERSION", "0.0.3")
 CODESIGN_IDENTITY = os.environ.get("CODESIGN_IDENTITY") or "-"
 
 _fw_data = collect_data_files("faster_whisper", include_py_files=False)

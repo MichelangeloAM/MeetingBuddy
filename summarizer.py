@@ -7,7 +7,7 @@ import httpx
 from openai import OpenAI, APIError, APITimeoutError, APIConnectionError, AuthenticationError
 
 from models import MeetingNotes
-from prompts import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+from prompts import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, get_output_language_instruction
 from settings import get_api_key
 
 
@@ -104,12 +104,16 @@ def _stream_with_progress(
     transcript: str,
     progress: ProgressCallback | None,
     cancel_check: Callable[[], bool] | None = None,
+    output_language: str = "auto",
+    detected_language: str = "",
 ) -> str:
+    language_instruction = get_output_language_instruction(output_language, detected_language)
+    system_prompt = SYSTEM_PROMPT.format(output_language_instruction=language_instruction)
     expected = _estimate_expected_chars(transcript)
     stream = client.chat.completions.create(
         model="deepseek-v4-flash",
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": USER_PROMPT_TEMPLATE.format(transcript=transcript)},
         ],
         temperature=0.3,
@@ -156,6 +160,8 @@ def generate_meeting_notes(
     transcript: str,
     progress_callback: ProgressCallback | None = None,
     cancel_check: Callable[[], bool] | None = None,
+    output_language: str = "auto",
+    detected_language: str = "",
 ) -> MeetingNotes:
     if progress_callback:
         progress_callback(2.0, "Contacting DeepSeek…")
@@ -163,7 +169,11 @@ def generate_meeting_notes(
     client = _get_client()
 
     try:
-        content = _stream_with_progress(client, transcript, progress_callback, cancel_check)
+        content = _stream_with_progress(
+            client, transcript, progress_callback, cancel_check,
+            output_language=output_language,
+            detected_language=detected_language,
+        )
     except SummarizationCancelled:
         raise
     except (APIError, APITimeoutError, APIConnectionError, AuthenticationError):
@@ -181,10 +191,12 @@ def generate_meeting_notes(
             )
             thread.start()
         try:
+            language_instruction = get_output_language_instruction(output_language, detected_language)
+            system_prompt = SYSTEM_PROMPT.format(output_language_instruction=language_instruction)
             response = client.chat.completions.create(
                 model="deepseek-v4-flash",
                 messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": USER_PROMPT_TEMPLATE.format(transcript=transcript)},
                 ],
                 temperature=0.3,

@@ -159,7 +159,6 @@ async def index(request: Request):
 @app.get("/api/settings")
 async def get_settings():
     s = load_settings()
-    # never leak the raw api key beyond a masked hint
     key = s.get("api_key", "") or ""
     return JSONResponse({
         **s,
@@ -172,7 +171,13 @@ async def get_settings():
 async def update_settings(request: Request):
     body = await request.json()
     settings = load_settings()
-    for key in ("api_key", "onboarding_completed", "permissions_acknowledged"):
+    allowed_keys = {
+        "api_key", "onboarding_completed", "permissions_acknowledged",
+        "batch_size", "cuda_enabled", "vad_enabled",
+        "vad_threshold", "vad_min_silence_ms", "vad_speech_pad_ms",
+        "output_language",
+    }
+    for key in allowed_keys:
         if key in body:
             settings[key] = body[key]
     save_settings(settings)
@@ -217,6 +222,20 @@ async def system_disk():
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.get("/api/system/ram")
+async def system_ram():
+    try:
+        import psutil
+        mem = psutil.virtual_memory()
+        return JSONResponse({
+            "total_gb": round(mem.total / (1024**3), 1),
+            "available_gb": round(mem.available / (1024**3), 1),
+            "percent": mem.percent,
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @app.post("/api/system/open-settings")
 async def open_system_settings(request: Request):
     body = await request.json()
@@ -252,7 +271,7 @@ async def get_models():
 
 @app.post("/api/models/{model_size}/download")
 async def start_model_download(model_size: str):
-    if model_size not in ("tiny", "small", "medium", "large-v3"):
+    if model_size not in ("tiny", "small", "medium", "large-v3", "large-v3-q4", "large-v3-q8"):
         return JSONResponse({"error": "Invalid model size"}, status_code=400)
     if is_model_cached(model_size):
         return JSONResponse({"status": "already_downloaded"})
@@ -344,6 +363,7 @@ async def upload_audio(
     file: UploadFile,
     model_size: str = Form("large-v3"),
     language: str = Form(""),
+    output_language: str = Form("auto"),
 ):
     job_id = str(uuid.uuid4())
     raw_name = Path(file.filename or "").name  # strip any path components
@@ -355,6 +375,10 @@ async def upload_audio(
     lang = (language or "").strip().lower()
     if lang and lang not in _LANGUAGE_WHITELIST:
         lang = ""
+
+    out_lang = (output_language or "").strip().lower()
+    if out_lang != "auto" and out_lang not in _LANGUAGE_WHITELIST:
+        out_lang = "auto"
 
     content = await file.read()
     with open(file_path, "wb") as f:
@@ -369,6 +393,7 @@ async def upload_audio(
         "file_size": len(content),
         "model_size": model_size,
         "language": lang,
+        "output_language": out_lang,
         "audio_duration": 0.0,
         "word_count": 0,
         "processing_time": 0.0,
@@ -381,7 +406,7 @@ async def upload_audio(
         "_file_path": file_path,
     }
 
-    asyncio.create_task(_process_job(job_id, file_path, raw_name or f"upload{ext}", model_size, lang))
+    asyncio.create_task(_process_job(job_id, file_path, raw_name or f"upload{ext}", model_size, lang, out_lang))
 
     return JSONResponse({"job_id": job_id})
 
@@ -686,6 +711,7 @@ async def _process_job(
     filename: str,
     model_size: str = "large-v3",
     language: str = "",
+    output_language: str = "auto",
 ):
     job = jobs[job_id]
     loop = asyncio.get_running_loop()
@@ -778,7 +804,23 @@ async def _process_job(
             return
 
         cached = is_model_cached(model_size)
-        transcriber = get_transcriber(model_size=model_size)
+        settings = load_settings()
+        batch_size_val = settings.get("batch_size", "auto")
+        batch_size = int(batch_size_val) if isinstance(batch_size_val, str) and batch_size_val.isdigit() else None
+        cuda_enabled = settings.get("cuda_enabled", "auto")
+        vad_enabled = settings.get("vad_enabled", True)
+        vad_threshold = float(settings.get("vad_threshold", 0.5))
+        vad_min_silence_ms = int(settings.get("vad_min_silence_ms", 500))
+        vad_speech_pad_ms = int(settings.get("vad_speech_pad_ms", 400))
+        transcriber = get_transcriber(
+            model_size=model_size,
+            batch_size=batch_size,
+            cuda_enabled=cuda_enabled,
+            vad_filter=vad_enabled,
+            vad_threshold=vad_threshold,
+            vad_min_silence_ms=vad_min_silence_ms,
+            vad_speech_pad_ms=vad_speech_pad_ms,
+        )
 
         if not cached:
             await _phase("downloading_model")
@@ -855,6 +897,8 @@ async def _process_job(
         try:
             notes = await asyncio.to_thread(
                 generate_meeting_notes, transcript_text, _thread_summary_progress, _is_cancelled,
+                output_language,
+                job.get("detected_language", ""),
             )
         except TypeError:
             # Backwards-compat: older summarizer.generate_meeting_notes without cancel_check.

@@ -1,10 +1,53 @@
+LANGUAGE_NAMES: dict[str, str] = {
+    "en": "English",
+    "it": "Italian",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "pt": "Portuguese",
+    "nl": "Dutch",
+    "ru": "Russian",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "ar": "Arabic",
+    "hi": "Hindi",
+    "tr": "Turkish",
+    "pl": "Polish",
+    "sv": "Swedish",
+    "no": "Norwegian",
+    "fi": "Finnish",
+    "da": "Danish",
+    "cs": "Czech",
+    "uk": "Ukrainian",
+    "ro": "Romanian",
+    "el": "Greek",
+    "hu": "Hungarian",
+    "he": "Hebrew",
+    "id": "Indonesian",
+    "th": "Thai",
+    "vi": "Vietnamese",
+    "ms": "Malay",
+    "ca": "Catalan",
+}
+
+
+def get_output_language_instruction(output_language: str, detected_language: str = "") -> str:
+    if output_language == "auto":
+        if detected_language and detected_language in LANGUAGE_NAMES:
+            return f"Always write the final report in {LANGUAGE_NAMES[detected_language]}, the same language as the transcript."
+        return "Always write the final report in the same language as the transcript."
+    lang_name = LANGUAGE_NAMES.get(output_language, output_language)
+    return f"Always write the final report in {lang_name}, regardless of the transcript's original language."
+
+
 SYSTEM_PROMPT = """You are a senior executive assistant and meeting analyst with years of experience capturing and structuring meeting outcomes. Your task is to analyze meeting transcripts and produce detailed, actionable, and professional meeting reports.
 
 ## Core Principles
 
 1. **Accuracy** — only report information explicitly present in the transcript. Never invent, assume, or embellish.
 2. **Specificity** — avoid vague phrases like "various topics were discussed." Always state the actual topic, person, deadline, or decision.
-3. **Clarity** — write in clear, professional English. Use the participants' own terminology where appropriate.
+3. **Clarity** — write in clear, professional language. Use the participants' own terminology where appropriate.
 4. **Completeness** — capture every meaningful discussion point, decision, action item, and topic shift.
 5. **Conciseness** — the summary should be a tight 4-6 sentence executive paragraph. Bullet points should be single sentences.
 
@@ -18,7 +61,7 @@ Professional, neutral, and constructive. Present even disagreements or challenge
 
 ## Language
 
-Always write the final report in English, regardless of the transcript's original language."""
+{output_language_instruction}"""
 
 USER_PROMPT_TEMPLATE = """Analyze the following meeting transcript and produce a comprehensive, well-structured meeting report.
 
@@ -102,7 +145,7 @@ List every distinct topic or theme covered. Group related discussion points unde
 Format: `- [Topic Name]: brief description of the discussion`
 
 Examples:
-- `- Product Roadmap: The team reviewed the Q3 milestone progress and confirmed the feature freeze date of August 20.` 
+- `- Product Roadmap: The team reviewed the Q3 milestone progress and confirmed the feature freeze date of August 20.`
 - `- Hiring: Three new engineering positions were approved. The job descriptions will be posted by HR by end of week.`
 
 If topics are unclear, write exactly:

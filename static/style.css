@@ -1137,6 +1137,51 @@ html.dark .transcript-body mark { background: #854d0e; color: #fef08a; }
 .settings-status.success { color: var(--success); }
 .settings-status.error { color: var(--danger); }
 
+/* ── Advanced Settings Grid ─────────────────── */
+
+.adv-settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 12px;
+}
+
+.adv-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.adv-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.adv-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.adv-slider {
+    width: 100%;
+    accent-color: var(--accent);
+}
+
+.adv-number {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text);
+    background: var(--bg-input);
+    outline: none;
+    transition: border-color 0.15s;
+    max-width: 140px;
+}
+
+.adv-number:focus { border-color: var(--accent); }
+
 /* ── Model Grid ──────────────────────────────── */
 
 .model-grid {

@@ -72,6 +72,10 @@
                             <span>Model</span>
                             <select id="model-select" class="model-select"></select>
                         </label>
+                        <label class="option-label" for="output-lang-select">
+                            <span>Output Language</span>
+                            <select id="output-lang-select" class="model-select"></select>
+                        </label>
                     </div>
                     <label id="drop-zone" class="card drop-zone" for="file-input" tabindex="0"
                           aria-label="Upload audio file — click, press Enter, or drop a file here">
@@ -164,6 +168,10 @@
                                         <option value="ca">Catalan</option>
                                     </select>
                                 </label>
+                                <label class="option-label" for="output-lang-select-record">
+                                    <span>Output Language</span>
+                                    <select id="output-lang-select-record" class="model-select"></select>
+                                </label>
                             </div>
                             <button class="btn btn-ghost btn-sm" onclick="App.resetRecordingMode()">Change mode</button>
                         </div>
@@ -214,7 +222,7 @@
                         </div>
                         <div class="record-done-btns">
                             <button class="btn btn-primary" onclick="App.processRecording()">Process Recording</button>
-                            <button class="btn btn-secondary" onclick="App.downloadRecording()">Download WAV</button>
+                            <button class="btn btn-secondary" onclick="App.downloadRecording()">Download</button>
                             <button class="btn btn-ghost" onclick="App.resetRecordingMode()">Record again</button>
                         </div>
                     </div>
@@ -254,6 +262,57 @@
                         <h3 class="settings-card-title">Onboarding</h3>
                         <p class="settings-card-desc">Re-run the first-run tour to reconfigure your API key, models, and permissions.</p>
                         <button class="btn btn-secondary btn-sm" onclick="App.rerunOnboarding()">Re-run first-run tour</button>
+                    </div>
+
+                    <div class="card settings-card">
+                        <h3 class="settings-card-title">Advanced Transcription</h3>
+                        <p class="settings-card-desc">Tune whisper inference settings. Changes take effect on the next upload.</p>
+                        <div id="adv-settings-grid" class="adv-settings-grid">
+                            <div class="adv-field">
+                                <label class="adv-label" for="adv-batch-size">Batch Size</label>
+                                <select id="adv-batch-size" class="model-select">
+                                    <option value="auto">Auto (detect RAM)</option>
+                                    <option value="1">1 (lowest RAM)</option>
+                                    <option value="2">2</option>
+                                    <option value="4">4</option>
+                                    <option value="8">8</option>
+                                    <option value="16">16</option>
+                                </select>
+                                <span class="adv-hint" id="ram-info"></span>
+                            </div>
+                            <div class="adv-field">
+                                <label class="adv-label" for="adv-cuda">CUDA / GPU</label>
+                                <select id="adv-cuda" class="model-select">
+                                    <option value="auto">Auto-detect</option>
+                                    <option value="force">Force GPU</option>
+                                    <option value="disable">CPU only</option>
+                                </select>
+                            </div>
+                            <div class="adv-field">
+                                <label class="adv-label" for="adv-vad-enabled">Voice Activity Detection</label>
+                                <select id="adv-vad-enabled" class="model-select">
+                                    <option value="true">Enabled</option>
+                                    <option value="false">Disabled</option>
+                                </select>
+                            </div>
+                            <div class="adv-field">
+                                <label class="adv-label" for="adv-vad-threshold">VAD Sensitivity</label>
+                                <input type="range" id="adv-vad-threshold" min="0.1" max="0.9" step="0.05" value="0.5" class="adv-slider">
+                                <span class="adv-hint" id="vad-threshold-val">0.50</span>
+                            </div>
+                            <div class="adv-field">
+                                <label class="adv-label" for="adv-vad-min-silence">Min Silence (ms)</label>
+                                <input type="number" id="adv-vad-min-silence" min="100" max="3000" step="50" value="500" class="adv-number">
+                            </div>
+                            <div class="adv-field">
+                                <label class="adv-label" for="adv-vad-speech-pad">Speech Padding (ms)</label>
+                                <input type="number" id="adv-vad-speech-pad" min="50" max="2000" step="50" value="400" class="adv-number">
+                            </div>
+                        </div>
+                        <div class="apikey-actions">
+                            <button class="btn btn-primary btn-sm" onclick="App.saveAdvancedSettings()">Save Settings</button>
+                        </div>
+                        <span id="adv-status" class="settings-status" role="status" aria-live="polite"></span>
                     </div>
                 </div>
 

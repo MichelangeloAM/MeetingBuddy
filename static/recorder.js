@@ -74,22 +74,11 @@ const AudioRecorder = {
             this._stopAnalyser();
             this._stopTimer();
 
-            let wavError = null;
-            try {
-                this.wavBlob = await AudioRecorder.webmToWav(this.recordedBlob);
-            } catch (err) {
-                this.wavBlob = null;
-                wavError = (err && err.message) || String(err);
-                console.warn("WAV conversion failed", err);
-            }
-
             if (this.onStop) {
                 this.onStop({
-                    webm: this.recordedBlob,
-                    wav: this.wavBlob,
-                    wavError,
+                    blob: this.recordedBlob,
                     duration: ((Date.now() - this.startTime) / 1000).toFixed(1),
-                    size: (this.wavBlob || this.recordedBlob).size,
+                    size: this.recordedBlob.size,
                 });
             }
         };

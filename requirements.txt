@@ -10,3 +10,4 @@ faster-whisper>=1.2.1
 mlx-whisper>=0.4.0; sys_platform == "darwin"
 pywebview>=5.0
 keyring>=25.0
+psutil>=6.0.0

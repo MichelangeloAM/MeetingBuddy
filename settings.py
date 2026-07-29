@@ -53,6 +53,13 @@ DEFAULT_SETTINGS = {
     "downloaded_models": [],
     "onboarding_completed": False,
     "permissions_acknowledged": False,
+    "batch_size": "auto",
+    "cuda_enabled": "auto",
+    "vad_enabled": True,
+    "vad_threshold": 0.5,
+    "vad_min_silence_ms": 500,
+    "vad_speech_pad_ms": 400,
+    "output_language": "auto",
 }
 
 _KEYRING_SERVICE = "MeetingGenerator"

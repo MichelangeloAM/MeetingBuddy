@@ -11,3 +11,4 @@ huggingface_hub>=0.20.0
 pywebview>=5.0
 keyring>=25.0
 pyinstaller>=6.0.0
+psutil>=6.0.0

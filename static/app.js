@@ -9,8 +9,7 @@ const App = {
     activeTab: "overview",
     searchQuery: "",
     currentView: "upload",
-    recordWavBlob: null,
-    recordWebmBlob: null,
+    recordBlob: null,
     recordFilename: "",
     recordMode: null,
     currentPhase: null,
@@ -38,6 +37,9 @@ const App = {
         document.getElementById("theme-toggle").addEventListener("click", () => this.toggleDarkMode());
         this.bindDropZone();
 
+        const vtSlider = document.getElementById("adv-vad-threshold");
+        if (vtSlider) vtSlider.addEventListener("input", () => this._updateVadThresholdLabel());
+
         if (!AudioRecorder.supportsSystemAudio()) {
             const opt = document.getElementById("rec-mode-system");
             if (opt) {
@@ -61,6 +63,7 @@ const App = {
         this.loadHistoryList();
         this._renderUploadBanners();
         this._restoreRecordLang();
+        this._restoreOutputLang();
 
         fetch("/api/models").then((r) => r.json()).then((models) => this._populateModelSelects(models)).catch(() => {});
 
@@ -90,8 +93,22 @@ const App = {
         } catch (_) {}
     },
 
+    _restoreOutputLang() {
+        try {
+            const saved = localStorage.getItem("mg.outputLang") || "auto";
+            const sel = document.getElementById("output-lang-select");
+            if (sel) sel.value = saved;
+            const selRec = document.getElementById("output-lang-select-record");
+            if (selRec) selRec.value = saved;
+        } catch (_) {}
+    },
+
     _persistRecordLang(val) {
         try { localStorage.setItem("mg.recordLang", val || ""); } catch (_) {}
+    },
+
+    _persistOutputLang(val) {
+        try { localStorage.setItem("mg.outputLang", val || "auto"); } catch (_) {}
     },
 
     _persistModelChoice(sel) {
@@ -292,9 +309,27 @@ const App = {
             const res = await fetch("/api/settings");
             const s = await res.json();
             document.getElementById("api-key-input").value = s.api_key || "";
+            const bs = document.getElementById("adv-batch-size");
+            if (bs) bs.value = String(s.batch_size || "auto");
+            const cu = document.getElementById("adv-cuda");
+            if (cu) cu.value = String(s.cuda_enabled || "auto");
+            const ve = document.getElementById("adv-vad-enabled");
+            if (ve) ve.value = s.vad_enabled !== false ? "true" : "false";
+            const vt = document.getElementById("adv-vad-threshold");
+            if (vt) { vt.value = s.vad_threshold || 0.5; this._updateVadThresholdLabel(); }
+            const vm = document.getElementById("adv-vad-min-silence");
+            if (vm) vm.value = s.vad_min_silence_ms || 500;
+            const vp = document.getElementById("adv-vad-speech-pad");
+            if (vp) vp.value = s.vad_speech_pad_ms || 400;
+            const ol = s.output_language;
+            if (ol && ol !== "auto") {
+                try { localStorage.setItem("mg.outputLang", ol); } catch (_) {}
+                this._populateOutputLangSelects();
+            }
         } catch {}
         this.loadModelList();
         this.loadDiskSpace();
+        this.loadSystemRAM();
     },
 
     toggleApiKeyVisibility() {
@@ -384,6 +419,55 @@ const App = {
         }
     },
 
+    async loadSystemRAM() {
+        const info = document.getElementById("ram-info");
+        if (!info) return;
+        try {
+            const res = await fetch("/api/system/ram");
+            const d = await res.json();
+            info.textContent = `${d.available_gb.toFixed(1)} GB free / ${d.total_gb.toFixed(1)} GB total`;
+        } catch (_) {
+            info.textContent = "";
+        }
+    },
+
+    _updateVadThresholdLabel() {
+        const vt = document.getElementById("adv-vad-threshold");
+        const vl = document.getElementById("vad-threshold-val");
+        if (vt && vl) vl.textContent = parseFloat(vt.value).toFixed(2);
+    },
+
+    async saveAdvancedSettings() {
+        const status = document.getElementById("adv-status");
+        try {
+            const body = {
+                batch_size: document.getElementById("adv-batch-size").value,
+                cuda_enabled: document.getElementById("adv-cuda").value,
+                vad_enabled: document.getElementById("adv-vad-enabled").value === "true",
+                vad_threshold: parseFloat(document.getElementById("adv-vad-threshold").value),
+                vad_min_silence_ms: parseInt(document.getElementById("adv-vad-min-silence").value),
+                vad_speech_pad_ms: parseInt(document.getElementById("adv-vad-speech-pad").value),
+            };
+            const res = await fetch("/api/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            if (res.ok) {
+                status.textContent = "Settings saved";
+                status.className = "settings-status success";
+                window.UI.toast("Transcription settings saved", { variant: "success" });
+            } else {
+                status.textContent = "Failed to save.";
+                status.className = "settings-status error";
+            }
+            setTimeout(() => { status.textContent = ""; }, 3000);
+        } catch {
+            status.textContent = "Connection error.";
+            status.className = "settings-status error";
+        }
+    },
+
     // --- Model Download ---
 
     async loadModelList() {
@@ -434,6 +518,65 @@ const App = {
             if (!sel._mgPersistBound) {
                 sel._mgPersistBound = true;
                 sel.addEventListener("change", () => this._persistModelChoice(sel));
+            }
+        });
+        this._populateOutputLangSelects();
+    },
+
+    _populateOutputLangSelects() {
+        const langs = [
+            { code: "auto", name: "Auto (same as transcript)" },
+            { code: "en", name: "English" },
+            { code: "it", name: "Italian" },
+            { code: "es", name: "Spanish" },
+            { code: "fr", name: "French" },
+            { code: "de", name: "German" },
+            { code: "pt", name: "Portuguese" },
+            { code: "nl", name: "Dutch" },
+            { code: "ru", name: "Russian" },
+            { code: "zh", name: "Chinese" },
+            { code: "ja", name: "Japanese" },
+            { code: "ko", name: "Korean" },
+            { code: "ar", name: "Arabic" },
+            { code: "hi", name: "Hindi" },
+            { code: "tr", name: "Turkish" },
+            { code: "pl", name: "Polish" },
+            { code: "sv", name: "Swedish" },
+            { code: "no", name: "Norwegian" },
+            { code: "fi", name: "Finnish" },
+            { code: "da", name: "Danish" },
+            { code: "cs", name: "Czech" },
+            { code: "uk", name: "Ukrainian" },
+            { code: "ro", name: "Romanian" },
+            { code: "el", name: "Greek" },
+            { code: "hu", name: "Hungarian" },
+            { code: "he", name: "Hebrew" },
+            { code: "id", name: "Indonesian" },
+            { code: "th", name: "Thai" },
+            { code: "vi", name: "Vietnamese" },
+            { code: "ms", name: "Malay" },
+            { code: "ca", name: "Catalan" },
+        ];
+        let saved = "auto";
+        try { saved = localStorage.getItem("mg.outputLang") || "auto"; } catch (_) {}
+
+        const selects = [
+            document.getElementById("output-lang-select"),
+            document.getElementById("output-lang-select-record"),
+        ];
+        selects.forEach((sel) => {
+            if (!sel) return;
+            sel.innerHTML = "";
+            langs.forEach((l) => {
+                const opt = document.createElement("option");
+                opt.value = l.code;
+                opt.textContent = l.name;
+                sel.appendChild(opt);
+            });
+            sel.value = langs.some((l) => l.code === saved) ? saved : "auto";
+            if (!sel._mgOutputBound) {
+                sel._mgOutputBound = true;
+                sel.addEventListener("change", () => this._persistOutputLang(sel.value));
             }
         });
     },
@@ -649,8 +792,7 @@ const App = {
         const slot = document.getElementById("record-banner-slot");
         if (slot) slot.innerHTML = "";
         this.recordMode = null;
-        this.recordWebmBlob = null;
-        this.recordWavBlob = null;
+        this.recordBlob = null;
     },
 
     async startRecording() {
@@ -680,16 +822,11 @@ const App = {
             if (state === "error") this._handleRecordingError(info, mode);
         };
         AudioRecorder.onStop = (result) => {
-            this.recordWebmBlob = result.webm;
-            this.recordWavBlob = result.wav;
-            this.recordWavError = result.wavError || null;
+            this.recordBlob = result.blob;
             document.getElementById("rec-duration").textContent = result.duration + "s";
             document.getElementById("rec-size").textContent = this.fmtSize(result.size);
             document.getElementById("record-active").classList.add("hidden");
             document.getElementById("record-done").classList.remove("hidden");
-            if (result.wavError) {
-                window.UI.toast("Local WAV conversion failed — will upload original recording. Playback preview unavailable.", { variant: "warning", duration: 6000 });
-            }
             fetch("/api/settings", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -804,12 +941,9 @@ const App = {
     stopRecording() { AudioRecorder.stop(); },
 
     processRecording() {
-        const wav = this.recordWavBlob;
-        const webm = this.recordWebmBlob;
-        if (!wav && !webm) return;
-        const blob = wav || webm;
-        const ext = wav ? ".wav" : ".webm";
-        const filename = (this.recordFilename || "recording") + ext;
+        const blob = this.recordBlob;
+        if (!blob) return;
+        const filename = (this.recordFilename || "recording") + ".webm";
         const file = new File([blob], filename, { type: blob.type });
         const langSel = document.getElementById("lang-select-record");
         const language = langSel ? (langSel.value || "") : "";
@@ -819,13 +953,12 @@ const App = {
     },
 
     downloadRecording() {
-        const blob = this.recordWavBlob || this.recordWebmBlob;
+        const blob = this.recordBlob;
         if (!blob) { window.UI.toast("No recording available to download.", { variant: "warning" }); return; }
-        const ext = this.recordWavBlob ? ".wav" : ".webm";
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = (this.recordFilename || "recording") + ext;
+        a.download = (this.recordFilename || "recording") + ".webm";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -895,6 +1028,9 @@ const App = {
         const model = fromRecord && recordModel ? recordModel.value
             : (uploadModel ? uploadModel.value : "large-v3");
         const language = opts.language || "";
+        const outputLang = document.getElementById("output-lang-select")?.value
+            || document.getElementById("output-lang-select-record")?.value
+            || "auto";
         const langLabel = language ? ` · ${language.toUpperCase()}` : " · auto";
         document.getElementById("file-info").innerHTML =
             `<span class="fi-name">${this.esc(file.name)}</span>` +
@@ -906,6 +1042,7 @@ const App = {
         fd.append("file", file);
         fd.append("model_size", model);
         if (language) fd.append("language", language);
+        fd.append("output_language", outputLang);
 
         try {
             const res = await fetch("/api/upload", { method: "POST", body: fd });

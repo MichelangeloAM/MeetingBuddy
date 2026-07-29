@@ -223,7 +223,7 @@ def main() -> int:
 
         # 3. models
         s, models = _get_json(port, "/api/models")
-        if s != 200 or not isinstance(models, list) or len(models) != 4:
+        if s != 200 or not isinstance(models, list) or len(models) < 4:
             failures.append(f"/api/models returned {len(models) if isinstance(models,list) else 'non-list'}")
         else:
             _log(f"/api/models -> {[m['id'] for m in models]}")

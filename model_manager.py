@@ -30,6 +30,18 @@ MODEL_INFO: dict[str, dict] = {
         "description": "Best accuracy. Slowest to run; needs ~8 GB free RAM.",
         "recommended_for": "Best quality",
     },
+    "large-v3-q4": {
+        "size_mb": 800,
+        "label": "large-v3-q4 (~800 MB)",
+        "description": "4-bit quantized large-v3. Good accuracy with 4× less RAM. Apple Silicon only.",
+        "recommended_for": "Quantized (macOS)",
+    },
+    "large-v3-q8": {
+        "size_mb": 1500,
+        "label": "large-v3-q8 (~1.5 GB)",
+        "description": "8-bit quantized large-v3. Near-full accuracy at half RAM. Apple Silicon only.",
+        "recommended_for": "Quantized (macOS)",
+    },
 }
 
 _download_progress: dict[str, dict] = {}
@@ -37,6 +49,10 @@ _cancel_events: dict[str, threading.Event] = {}
 
 
 def _get_repo_id(model_size: str) -> str:
+    if model_size == "large-v3-q4":
+        return "mlx-community/whisper-large-v3-turbo-4bit"
+    if model_size == "large-v3-q8":
+        return "mlx-community/whisper-large-v3-turbo-8bit"
     return f"Systran/faster-whisper-{model_size}"
 
 
@@ -152,6 +168,32 @@ class DownloadCancelled(Exception):
 
 def download_model_sync(model_size: str) -> None:
     from faster_whisper.utils import download_model
+
+    if model_size in ("large-v3-q4", "large-v3-q8"):
+        import sys
+        if sys.platform != "darwin":
+            raise RuntimeError(f"{model_size} is only available on macOS with MLX backend.")
+        try:
+            import mlx_whisper
+            repo_id = f"mlx-community/whisper-large-v3-turbo-{model_size.split('-')[-1]}bit"
+            mlx_whisper.download_model(repo_id)
+        except ImportError:
+            raise RuntimeError("mlx-whisper not installed. Quantized models require Apple Silicon.")
+        final_mb = _get_cache_size_mb(model_size)
+        _download_progress[model_size] = {
+            "progress": 100,
+            "message": f"Model {model_size} ready ({final_mb:.0f} MB on disk)",
+            "downloaded_mb": final_mb,
+            "total_mb": MODEL_INFO.get(model_size, {}).get("size_mb", 0),
+            "speed_kbps": 0,
+            "eta_sec": 0,
+            "cancelled": False,
+        }
+        settings = load_settings()
+        downloaded = set(settings.get("downloaded_models", []))
+        downloaded.add(model_size)
+        set_setting("downloaded_models", sorted(downloaded))
+        return
 
     cancel_ev = threading.Event()
     _cancel_events[model_size] = cancel_ev
