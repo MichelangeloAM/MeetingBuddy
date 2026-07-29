@@ -1417,9 +1417,59 @@ const App = {
             </div>
             <div class="transcript-body" id="transcript-body">${lines.join("\n")}</div>
             <div class="transcript-actions">
-                <button class="btn btn-primary" onclick="App.copyText(App.result.transcript)">Copy transcript</button>
+                <button class="btn btn-secondary" onclick="App.copyText(App.result.transcript)">Copy transcript</button>
+                <div class="dropdown" id="transcript-download-dropdown">
+                    <button type="button" class="btn btn-primary" aria-haspopup="true" aria-expanded="false"
+                            onclick="App.toggleTranscriptDownloadMenu(event)">
+                        Download <span class="dropdown-caret" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="dropdown-menu" id="transcript-download-menu" hidden role="menu">
+                        <button type="button" class="dropdown-item" role="menuitem" onclick="App.downloadTranscript('docx')">
+                            <span aria-hidden="true">&#128196;</span> Word (.docx)
+                        </button>
+                        <button type="button" class="dropdown-item" role="menuitem" onclick="App.downloadTranscript('pdf')">
+                            <span aria-hidden="true">&#128209;</span> PDF
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
+    },
+
+    toggleTranscriptDownloadMenu(event) {
+        event.stopPropagation();
+        const menu = document.getElementById("transcript-download-menu");
+        const btn = event.currentTarget;
+        const opening = menu.hasAttribute("hidden");
+        if (opening) {
+            menu.removeAttribute("hidden");
+            btn.setAttribute("aria-expanded", "true");
+            const close = (e) => {
+                if (!document.getElementById("transcript-download-dropdown")?.contains(e.target)) {
+                    menu.setAttribute("hidden", "");
+                    btn.setAttribute("aria-expanded", "false");
+                    document.removeEventListener("click", close);
+                }
+            };
+            document.addEventListener("click", close);
+        } else {
+            menu.setAttribute("hidden", "");
+            btn.setAttribute("aria-expanded", "false");
+        }
+    },
+
+    async downloadTranscript(kind) {
+        const menu = document.getElementById("transcript-download-menu");
+        if (menu) menu.setAttribute("hidden", "");
+        const id = this.currentJobId;
+        if (!id) { window.UI.toast("No meeting loaded.", { variant: "warning" }); return; }
+        const map = {
+            docx: { url: `/api/result/${id}/transcript/docx`, name: "transcript.docx", label: "Word document exported" },
+            pdf: { url: `/api/result/${id}/transcript/pdf`, name: "transcript.pdf", label: "PDF exported" },
+        };
+        const target = map[kind];
+        if (!target) return;
+        await this.saveFile(target.url, target.name, target.label);
     },
 
     searchTranscript() {
@@ -1481,14 +1531,21 @@ const App = {
         const url = `/api/result/${id}${target.path ? "/" + target.path : ""}`;
         const btn = document.querySelector(`.export-card[onclick*="'${kind}'"]`);
         if (btn) btn.classList.add("is-loading");
+        try {
+            await this.saveFile(url, target.name, `${kind.toUpperCase()} exported`);
+        } finally {
+            if (btn) btn.classList.remove("is-loading");
+        }
+    },
 
+    async saveFile(url, filename, successLabel) {
         try {
             // Preferred path: pywebview desktop bridge. Opens a native Save dialog
             // via Python and writes the file — no window navigation, no blank window.
             const api = window.pywebview && window.pywebview.api;
             const bridgeFn = api ? (api.save_file || api.saveFile) : null;
             if (bridgeFn) {
-                const result = await bridgeFn.call(api, url, target.name);
+                const result = await bridgeFn.call(api, url, filename);
                 if (result && result.ok) {
                     window.UI.toast(`Saved to ${result.path}`, { variant: "success", duration: 2000 });
                 } else if (result && result.cancelled) {
@@ -1506,16 +1563,14 @@ const App = {
             const objUrl = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = objUrl;
-            a.download = target.name;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
-            window.UI.toast(`${kind.toUpperCase()} exported`, { variant: "success", duration: 1600 });
+            window.UI.toast(successLabel || "Exported", { variant: "success", duration: 1600 });
         } catch (err) {
             window.UI.toast(`Export failed: ${err.message}`, { variant: "error" });
-        } finally {
-            if (btn) btn.classList.remove("is-loading");
         }
     },
 

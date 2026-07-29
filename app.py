@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader
 from sse_starlette.sse import EventSourceResponse
 
-from generator import generate_pdf, generate_text
+from generator import generate_pdf, generate_text, generate_transcript_docx, generate_transcript_pdf
 from model_manager import (
     cancel_download,
     delete_model,
@@ -660,6 +660,44 @@ async def download_text(job_id: str):
         media_type="text/plain; charset=utf-8",
         headers={
             "Content-Disposition": "attachment; filename=meeting_notes.txt",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@app.get("/api/result/{job_id}/transcript/pdf")
+async def download_transcript_pdf(job_id: str):
+    if not _valid_job_id(job_id):
+        return JSONResponse({"error": "Invalid job id"}, status_code=400)
+    notes = _get_result_for_export(job_id)
+    if notes is None:
+        return JSONResponse({"error": "Result not found"}, status_code=404)
+
+    pdf_bytes = generate_transcript_pdf(notes)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": "attachment; filename=transcript.pdf",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@app.get("/api/result/{job_id}/transcript/docx")
+async def download_transcript_docx(job_id: str):
+    if not _valid_job_id(job_id):
+        return JSONResponse({"error": "Invalid job id"}, status_code=400)
+    notes = _get_result_for_export(job_id)
+    if notes is None:
+        return JSONResponse({"error": "Result not found"}, status_code=404)
+
+    docx_bytes = generate_transcript_docx(notes)
+    return Response(
+        content=docx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": "attachment; filename=transcript.docx",
             "X-Content-Type-Options": "nosniff",
         },
     )

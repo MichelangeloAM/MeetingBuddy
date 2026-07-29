@@ -982,6 +982,43 @@ html.dark .transcript-body mark { background: #854d0e; color: #fef08a; }
 
 .transcript-actions { display: flex; gap: 8px; }
 
+.dropdown { position: relative; display: inline-block; }
+
+.dropdown-caret { font-size: 0.7em; margin-left: 2px; }
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 180px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    padding: 6px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 8px 10px;
+    border-radius: var(--radius-xs);
+    font-size: 0.85rem;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.dropdown-item:hover { background: var(--bg-hover); }
+
 /* Export */
 
 .export-grid {
